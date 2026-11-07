@@ -1,5 +1,5 @@
 # Local development helper: `docker compose up -d db` starts only PostgreSQL,
-# `docker compose up -d` starts PostgreSQL + the API.
+# `docker compose up -d` starts PostgreSQL + the API (migrations run on start).
 services:
   db:
     image: postgres:17-alpine
