@@ -1,0 +1,256 @@
+// Prisma schema — the single source of truth for the database structure.
+// After editing this file run:  npm run db:make -- <migration_name>
+// Docs: https://www.prisma.io/docs/orm/prisma-schema
+//
+// Convention: models/fields are camelCase in JavaScript and mapped to
+// snake_case tables/columns in PostgreSQL with @map / @@map.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  admin
+  editor
+
+  @@map("user_role")
+}
+
+enum PublishStatus {
+  draft
+  published
+
+  @@map("publish_status")
+}
+
+enum MenuLocation {
+  header
+  footer
+
+  @@map("menu_location")
+}
+
+// ---------------------------------------------------------------------------
+// Users & settings
+// ---------------------------------------------------------------------------
+
+model User {
+  id           Int       @id @default(autoincrement())
+  name         String    @db.VarChar(120)
+  email        String    @unique @db.VarChar(160)
+  passwordHash String    @map("password_hash")
+  role         UserRole  @default(editor)
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  posts Post[]
+  media Media[]
+
+  @@map("users")
+}
+
+/// Key-value store for site wide configuration (general, theme, contact, seo, ...).
+model Setting {
+  key       String   @id @db.VarChar(60)
+  value     Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("settings")
+}
+
+// ---------------------------------------------------------------------------
+// Content
+// ---------------------------------------------------------------------------
+
+model Category {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(100)
+  slug        String   @unique @db.VarChar(120)
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  posts Post[]
+
+  @@map("categories")
+}
+
+model Post {
+  id          Int           @id @default(autoincrement())
+  title       String        @db.VarChar(200)
+  slug        String        @unique @db.VarChar(220)
+  excerpt     String?
+  content     String        @default("")
+  coverImage  String?       @map("cover_image") @db.VarChar(500)
+  categoryId  Int?          @map("category_id")
+  authorId    Int?          @map("author_id")
+  status      PublishStatus @default(draft)
+  isFeatured  Boolean       @default(false) @map("is_featured")
+  publishedAt DateTime?     @map("published_at") @db.Timestamptz
+  views       Int           @default(0)
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  author   User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([status, publishedAt])
+  @@map("posts")
+}
+
+model Page {
+  id              Int           @id @default(autoincrement())
+  title           String        @db.VarChar(200)
+  slug            String        @unique @db.VarChar(220)
+  content         String        @default("")
+  coverImage      String?       @map("cover_image") @db.VarChar(500)
+  metaDescription String?       @map("meta_description") @db.VarChar(300)
+  status          PublishStatus @default(draft)
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  sections Section[]
+
+  @@map("pages")
+}
+
+model Event {
+  id          Int       @id @default(autoincrement())
+  title       String    @db.VarChar(200)
+  slug        String    @unique @db.VarChar(220)
+  description String    @default("")
+  location    String?   @db.VarChar(200)
+  startAt     DateTime  @map("start_at") @db.Timestamptz
+  endAt       DateTime? @map("end_at") @db.Timestamptz
+  coverImage  String?   @map("cover_image") @db.VarChar(500)
+  isPublished Boolean   @default(true) @map("is_published")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([isPublished, startAt])
+  @@map("events")
+}
+
+// ---------------------------------------------------------------------------
+// Site builder
+// ---------------------------------------------------------------------------
+
+/// Page builder block. `pageId = null` means the section belongs to the home page.
+model Section {
+  id        Int      @id @default(autoincrement())
+  pageId    Int?     @map("page_id")
+  type      String   @db.VarChar(50)
+  label     String   @db.VarChar(120)
+  content   Json     @default("{}")
+  style     Json     @default("{}")
+  sortOrder Int      @default(0) @map("sort_order")
+  isVisible Boolean  @default(true) @map("is_visible")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  page Page? @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId, sortOrder])
+  @@map("sections")
+}
+
+/// Header/footer navigation. One level of sub menu via parentId.
+model MenuItem {
+  id           Int          @id @default(autoincrement())
+  location     MenuLocation @default(header)
+  label        String       @db.VarChar(100)
+  url          String       @db.VarChar(500)
+  parentId     Int?         @map("parent_id")
+  sortOrder    Int          @default(0) @map("sort_order")
+  openInNewTab Boolean      @default(false) @map("open_in_new_tab")
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  parent   MenuItem?  @relation("MenuTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children MenuItem[] @relation("MenuTree")
+
+  @@index([location, sortOrder])
+  @@map("menu_items")
+}
+
+// ---------------------------------------------------------------------------
+// School data
+// ---------------------------------------------------------------------------
+
+model Staff {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(120)
+  position  String   @db.VarChar(120)
+  subject   String?  @db.VarChar(120)
+  photo     String?  @db.VarChar(500)
+  bio       String?
+  sortOrder Int      @default(0) @map("sort_order")
+  isVisible Boolean  @default(true) @map("is_visible")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("staff")
+}
+
+model GalleryItem {
+  id          Int      @id @default(autoincrement())
+  title       String   @db.VarChar(200)
+  description String?
+  image       String   @db.VarChar(500)
+  album       String?  @db.VarChar(100)
+  sortOrder   Int      @default(0) @map("sort_order")
+  isVisible   Boolean  @default(true) @map("is_visible")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([album])
+  @@map("gallery_items")
+}
+
+// ---------------------------------------------------------------------------
+// Messages & media
+// ---------------------------------------------------------------------------
+
+/// Messages sent by visitors through the public contact form.
+model Message {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(120)
+  email     String   @db.VarChar(160)
+  phone     String?  @db.VarChar(30)
+  subject   String?  @db.VarChar(200)
+  message   String
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("messages")
+}
+
+/// Media library: every uploaded file is tracked here.
+model Media {
+  id           Int      @id @default(autoincrement())
+  filename     String   @unique
+  originalName String   @map("original_name")
+  mimetype     String   @db.VarChar(100)
+  size         Int
+  url          String
+  alt          String?  @db.VarChar(200)
+  uploadedBy   Int?     @map("uploaded_by")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  uploader User? @relation(fields: [uploadedBy], references: [id], onDelete: SetNull)
+
+  @@map("media")
+}

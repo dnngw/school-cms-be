@@ -6,6 +6,9 @@ node_modules/
 .env.*
 !.env.example
 
+# Prisma Client is generated from prisma/schema.prisma (npm install runs `prisma generate`)
+src/generated/
+
 # Uploaded files (keep the folder, ignore content)
 uploads/*
 !uploads/.gitkeep
