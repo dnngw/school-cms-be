@@ -19,7 +19,10 @@ export async function up(knex) {
     table.string('cover_image');
     table.integer('category_id').references('id').inTable('categories').onDelete('SET NULL');
     table.integer('author_id').references('id').inTable('users').onDelete('SET NULL');
-    table.enu('status', PUBLISH_STATUS, { useNative: true, enumName: 'publish_status' }).notNullable().defaultTo('draft');
+    table
+      .enu('status', PUBLISH_STATUS, { useNative: true, enumName: 'publish_status' })
+      .notNullable()
+      .defaultTo('draft');
     table.boolean('is_featured').notNullable().defaultTo(false);
     table.timestamp('published_at', { useTz: true });
     table.integer('views').notNullable().defaultTo(0);

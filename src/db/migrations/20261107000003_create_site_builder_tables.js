@@ -18,7 +18,10 @@ export async function up(knex) {
   // Navigation for the header and footer (supports one level of sub menu via parent_id).
   await knex.schema.createTable('menu_items', (table) => {
     table.increments('id').primary();
-    table.enu('location', ['header', 'footer'], { useNative: true, enumName: 'menu_location' }).notNullable().defaultTo('header');
+    table
+      .enu('location', ['header', 'footer'], { useNative: true, enumName: 'menu_location' })
+      .notNullable()
+      .defaultTo('header');
     table.string('label', 100).notNullable();
     table.string('url', 500).notNullable();
     table.integer('parent_id').references('id').inTable('menu_items').onDelete('CASCADE');

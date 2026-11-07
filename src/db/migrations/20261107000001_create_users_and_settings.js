@@ -17,7 +17,10 @@ export async function up(knex) {
     table.string('name', 120).notNullable();
     table.string('email', 160).notNullable().unique();
     table.string('password_hash').notNullable();
-    table.enu('role', ['admin', 'editor'], { useNative: true, enumName: 'user_role' }).notNullable().defaultTo('editor');
+    table
+      .enu('role', ['admin', 'editor'], { useNative: true, enumName: 'user_role' })
+      .notNullable()
+      .defaultTo('editor');
     table.boolean('is_active').notNullable().defaultTo(true);
     table.timestamp('last_login_at', { useTz: true });
     table.timestamps(true, true);

@@ -23,6 +23,11 @@ export async function paginate(query, { page, limit }) {
   const totalItems = Number(total);
   return {
     data: rows,
-    meta: { page, limit, total: totalItems, totalPages: Math.max(1, Math.ceil(totalItems / limit)) },
+    meta: {
+      page,
+      limit,
+      total: totalItems,
+      totalPages: Math.max(1, Math.ceil(totalItems / limit)),
+    },
   };
 }
