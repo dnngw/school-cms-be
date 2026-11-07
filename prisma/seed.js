@@ -246,7 +246,25 @@ async function seedSections() {
         title: 'Membangun Generasi Unggul dan Berkarakter',
         subtitle:
           'Sekolah dengan kurikulum modern, guru berpengalaman, dan lingkungan belajar yang nyaman.',
-        image: img('hero', 1600, 900),
+        // Several slides -> the hero becomes an auto-playing slider.
+        slides: [
+          { image: img('hero', 1600, 900), alt: 'Gedung sekolah' },
+          {
+            image: img('hero-ppdb', 1600, 900),
+            title: 'PPDB Tahun Ajaran Baru Telah Dibuka',
+            subtitle: 'Daftarkan putra-putri Anda sekarang. Kuota terbatas!',
+            alt: 'Siswa baru',
+          },
+          {
+            image: img('hero-prestasi', 1600, 900),
+            title: '150+ Prestasi Tingkat Nasional',
+            subtitle: 'Bukti komitmen kami mencetak siswa yang unggul dan berkarakter.',
+            alt: 'Siswa berprestasi',
+          },
+        ],
+        autoplay: true,
+        interval: 6,
+        transition: 'fade',
         overlayOpacity: 55,
         primaryLabel: 'Daftar Sekarang',
         primaryUrl: '/halaman/ppdb',
