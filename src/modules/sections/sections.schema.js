@@ -34,16 +34,25 @@ export const listSectionsQuery = z.object({
     .default('home'),
 });
 
-export const createSectionSchema = z.object({
+// Base fields WITHOUT defaults. Note: in Zod 4 `.partial()` still applies `.default()` values,
+// so defaults must only live in the create schema — otherwise a partial update such as
+// `{ isVisible: false }` would silently reset `content` and `style` to `{}`.
+const sectionFields = z.object({
+  label: z.string().trim().min(1).max(120),
+  content: z.record(z.string(), z.unknown()),
+  style: sectionStyleSchema,
+  isVisible: z.boolean(),
+});
+
+export const createSectionSchema = sectionFields.extend({
   pageId: idParam.nullable().optional(),
   type: z.enum(SECTION_TYPES),
-  label: z.string().trim().min(1).max(120),
-  content: z.record(z.string(), z.unknown()).default({}),
+  content: sectionFields.shape.content.default({}),
   style: sectionStyleSchema.default({}),
   isVisible: z.boolean().default(true),
 });
 
-export const updateSectionSchema = createSectionSchema.omit({ type: true, pageId: true }).partial();
+export const updateSectionSchema = sectionFields.partial();
 
 export const reorderSectionsSchema = z.object({
   ids: z.array(idParam).min(1),
