@@ -32,12 +32,12 @@ async function seedUsers() {
   const [admin] = await prisma.user.createManyAndReturn({
     data: [
       {
-        name: 'Administrator',
+        name: 'John Doe',
         email: process.env.SEED_ADMIN_EMAIL || 'admin@sekolah.sch.id',
         passwordHash,
         role: 'admin',
       },
-      { name: 'Editor Berita', email: 'editor@sekolah.sch.id', passwordHash, role: 'editor' },
+      { name: 'Jane Smith', email: 'editor@sekolah.sch.id', passwordHash, role: 'editor' },
     ],
   });
   return admin;
@@ -55,7 +55,7 @@ async function seedSettings() {
           npsn: '20100000',
           accreditation: 'A',
           foundedYear: '1985',
-          principalName: 'Dr. Siti Rahmawati, M.Pd.',
+          principalName: 'Emily Johnson',
         },
       },
       {
@@ -178,14 +178,14 @@ async function seedEvents() {
 
 async function seedSchoolData() {
   const staff = [
-    ['Dr. Siti Rahmawati, M.Pd.', 'Kepala Sekolah', null],
-    ['Budi Santoso, S.Pd.', 'Wakil Kepala Kurikulum', 'Matematika'],
-    ['Dewi Lestari, S.Pd.', 'Guru', 'Bahasa Indonesia'],
-    ['Ahmad Fauzi, S.Si.', 'Guru', 'Fisika'],
-    ['Rina Wulandari, S.Pd.', 'Guru', 'Bahasa Inggris'],
-    ['Hendra Gunawan, S.Kom.', 'Guru', 'Informatika'],
-    ['Maya Sari, S.Pd.', 'Guru', 'Biologi'],
-    ['Agus Pratama, S.Or.', 'Guru', 'Pendidikan Jasmani'],
+    ['Emily Johnson', 'Kepala Sekolah', null],
+    ['John Carter', 'Wakil Kepala Kurikulum', 'Matematika'],
+    ['Olivia Smith', 'Guru', 'Bahasa Indonesia'],
+    ['James Anderson', 'Guru', 'Fisika'],
+    ['Sophia Martin', 'Guru', 'Bahasa Inggris'],
+    ['Daniel Walker', 'Guru', 'Informatika'],
+    ['Emma Davis', 'Guru', 'Biologi'],
+    ['Ryan Thompson', 'Guru', 'Pendidikan Jasmani'],
   ];
   await prisma.staff.createMany({
     data: staff.map(([name, position, subject], i) => ({
@@ -298,7 +298,7 @@ async function seedSections() {
       {
         eyebrow: 'Sambutan',
         title: 'Selamat Datang di SMA Nusantara',
-        name: 'Dr. Siti Rahmawati, M.Pd.',
+        name: 'Emily Johnson',
         role: 'Kepala Sekolah',
         photo: img('principal', 600, 700),
         message:
@@ -395,17 +395,17 @@ async function seedSections() {
         title: 'Kata Alumni & Orang Tua',
         items: [
           {
-            name: 'Andi Wijaya',
+            name: 'Michael Brown',
             role: 'Alumni 2020, Universitas Indonesia',
             quote: 'Guru-guru di sini sangat peduli dan membantu saya meraih kampus impian.',
           },
           {
-            name: 'Ibu Ratna',
+            name: 'Sarah Wilson',
             role: 'Orang Tua Siswa',
             quote: 'Lingkungan sekolah yang aman dan program karakter yang sangat baik.',
           },
           {
-            name: 'Sari Putri',
+            name: 'David Lee',
             role: 'Alumni 2022, ITB',
             quote: 'Kegiatan ekstrakurikulernya membentuk saya menjadi pribadi yang percaya diri.',
           },

@@ -154,11 +154,7 @@ docker compose up -d   # PostgreSQL + API di http://localhost:4000
 docker compose exec api npx prisma db seed   # opsional: data contoh
 ```
 
-## 🤝 Kontribusi
-
-Pull request sangat diterima! Gunakan format [Conventional Commits](https://www.conventionalcommits.org/)
-(`feat:`, `fix:`, `docs:`, ...) dan pastikan `npm run lint && npm test` lolos.
 
 ## 📄 Lisensi
 
-[MIT](./LICENSE) © Danang Wijayanto
+[MIT](./LICENSE)
