@@ -3,7 +3,7 @@
 REST API untuk **School CMS**, sistem manajemen konten (CMS) open-source untuk website sekolah.
 Dibangun dengan **Express 5**, **PostgreSQL**, dan **Prisma ORM**.
 
-> Frontend (website publik + panel admin): [`school-cms-fe`](../school-cms-fe)
+> Frontend (website publik + panel admin): [`school-cms-fe`](https://github.com/dnngw/school-cms-fe)
 
 ## ✨ Fitur
 
