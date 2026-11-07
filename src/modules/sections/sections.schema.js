@@ -15,6 +15,8 @@ export const sectionStyleSchema = z.object({
   width: z.enum(['narrow', 'normal', 'wide', 'full']).optional(),
   align: z.enum(['left', 'center']).optional(),
   variant: z.string().max(40).optional(),
+  // Decorative background layer behind the content.
+  decoration: z.enum(['none', 'waves', 'blobs', 'dots', 'grid', 'glow']).optional(),
   // How the section appears when scrolled into view.
   animation: z.enum(['none', 'fade-up', 'fade', 'zoom', 'slide-left', 'slide-right']).optional(),
   anchorId: z

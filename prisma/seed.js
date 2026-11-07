@@ -347,7 +347,7 @@ async function seedSections() {
           },
         ],
       },
-      { background: 'surface' },
+      { background: 'surface', decoration: 'waves' },
     ],
     [
       'news',

@@ -39,6 +39,11 @@ describe('animation options', async () => {
     assert.throws(() => sectionStyleSchema.parse({ animation: 'spin' }));
   });
 
+  it('accepts known background decorations only', () => {
+    assert.equal(sectionStyleSchema.parse({ decoration: 'waves' }).decoration, 'waves');
+    assert.throws(() => sectionStyleSchema.parse({ decoration: 'confetti' }));
+  });
+
   it('theme defaults are valid and include the animation level', () => {
     const theme = getSettingsSchema('theme').parse(SETTINGS_DEFAULTS.theme);
     assert.equal(theme.animation, 'subtle');
