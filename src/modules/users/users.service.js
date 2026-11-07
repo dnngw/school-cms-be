@@ -1,29 +1,34 @@
-import { db } from '../../db/knex.js';
+import { prisma } from '../../db/prisma.js';
 import { ApiError } from '../../utils/api-error.js';
 import { hashPassword } from '../auth/password.js';
 
-const FIELDS = ['id', 'name', 'email', 'role', 'isActive', 'lastLoginAt', 'createdAt', 'updatedAt'];
+const FIELDS = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+  isActive: true,
+  lastLoginAt: true,
+  createdAt: true,
+  updatedAt: true,
+};
 
-export const list = () => db('users').select(FIELDS).orderBy('id');
+export const list = () => prisma.user.findMany({ select: FIELDS, orderBy: { id: 'asc' } });
 
 export async function create({ password, ...data }) {
-  const [user] = await db('users')
-    .insert({ ...data, passwordHash: await hashPassword(password) })
-    .returning(FIELDS);
-  return user;
+  return prisma.user.create({
+    data: { ...data, passwordHash: await hashPassword(password) },
+    select: FIELDS,
+  });
 }
 
 export async function update(id, { password, ...data }) {
-  const changes = { ...data };
-  if (password) changes.passwordHash = await hashPassword(password);
-
-  const [user] = await db('users').where({ id }).update(changes).returning(FIELDS);
-  if (!user) throw ApiError.notFound('User not found');
-  return user;
+  if (password) data.passwordHash = await hashPassword(password);
+  // Throws P2025 when the user doesn't exist -> 404 via the error handler.
+  return prisma.user.update({ where: { id }, data, select: FIELDS });
 }
 
 export async function remove(id, currentUserId) {
   if (id === currentUserId) throw ApiError.badRequest('You cannot delete your own account');
-  const deleted = await db('users').where({ id }).delete();
-  if (!deleted) throw ApiError.notFound('User not found');
+  await prisma.user.delete({ where: { id } });
 }

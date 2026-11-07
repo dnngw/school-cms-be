@@ -1,45 +1,34 @@
-import { db } from '../../db/knex.js';
-import { ApiError } from '../../utils/api-error.js';
-import { paginate } from '../../utils/pagination.js';
+import { prisma } from '../../db/prisma.js';
+import { contains, paginate } from '../../utils/pagination.js';
 
-function filtered({ album, search }) {
-  const query = db('gallery_items').orderBy([
-    { column: 'sortOrder' },
-    { column: 'id', order: 'desc' },
-  ]);
-  if (album) query.where({ album });
-  if (search) query.whereILike('title', `%${search}%`);
-  return query;
-}
+const orderBy = [{ sortOrder: 'asc' }, { id: 'desc' }];
 
-export const listVisible = (filters) =>
-  paginate(filtered(filters).where({ isVisible: true }), filters);
+const filters = ({ album, search }) => ({
+  ...(album ? { album } : {}),
+  ...(search ? { title: contains(search) } : {}),
+});
 
-export const list = (filters) => paginate(filtered(filters), filters);
+export const listVisible = (query) =>
+  paginate(prisma.galleryItem, { where: { ...filters(query), isVisible: true }, orderBy }, query);
+
+export const list = (query) =>
+  paginate(prisma.galleryItem, { where: filters(query), orderBy }, query);
 
 /** Distinct album names with item counts — used for filter tabs on the website. */
-export const listAlbums = () =>
-  db('gallery_items')
-    .where({ isVisible: true })
-    .whereNotNull('album')
-    .groupBy('album')
-    .orderBy('album')
-    .select('album')
-    .count({ total: '*' })
-    .then((rows) => rows.map((row) => ({ name: row.album, total: Number(row.total) })));
-
-export async function create(data) {
-  const [row] = await db('gallery_items').insert(data).returning('*');
-  return row;
+export async function listAlbums() {
+  const groups = await prisma.galleryItem.groupBy({
+    by: ['album'],
+    where: { isVisible: true, album: { not: null } },
+    _count: { _all: true },
+    orderBy: { album: 'asc' },
+  });
+  return groups.map((group) => ({ name: group.album, total: group._count._all }));
 }
 
-export async function update(id, data) {
-  const [row] = await db('gallery_items').where({ id }).update(data).returning('*');
-  if (!row) throw ApiError.notFound('Gallery item not found');
-  return row;
-}
+export const create = (data) => prisma.galleryItem.create({ data });
+
+export const update = (id, data) => prisma.galleryItem.update({ where: { id }, data });
 
 export async function remove(id) {
-  const deleted = await db('gallery_items').where({ id }).delete();
-  if (!deleted) throw ApiError.notFound('Gallery item not found');
+  await prisma.galleryItem.delete({ where: { id } });
 }

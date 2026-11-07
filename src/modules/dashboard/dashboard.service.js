@@ -1,11 +1,4 @@
-import { db } from '../../db/knex.js';
-
-const count = (table, where = {}) =>
-  db(table)
-    .where(where)
-    .count({ total: '*' })
-    .first()
-    .then(({ total }) => Number(total));
+import { prisma } from '../../db/prisma.js';
 
 /** Summary numbers + recent activity for the admin dashboard. */
 export async function getSummary() {
@@ -19,17 +12,22 @@ export async function getSummary() {
     recentPosts,
     recentMessages,
   ] = await Promise.all([
-    count('posts'),
-    count('posts', { status: 'published' }),
-    count('events'),
-    count('staff'),
-    count('gallery_items'),
-    count('messages', { isRead: false }),
-    db('posts').orderBy('createdAt', 'desc').limit(5).select('id', 'title', 'status', 'createdAt'),
-    db('messages')
-      .orderBy('createdAt', 'desc')
-      .limit(5)
-      .select('id', 'name', 'subject', 'isRead', 'createdAt'),
+    prisma.post.count(),
+    prisma.post.count({ where: { status: 'published' } }),
+    prisma.event.count(),
+    prisma.staff.count(),
+    prisma.galleryItem.count(),
+    prisma.message.count({ where: { isRead: false } }),
+    prisma.post.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      select: { id: true, title: true, status: true, createdAt: true },
+    }),
+    prisma.message.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      select: { id: true, name: true, subject: true, isRead: true, createdAt: true },
+    }),
   ]);
 
   return {

@@ -1,12 +1,15 @@
 import multer from 'multer';
 import { logger } from '../config/logger.js';
 import { env } from '../config/env.js';
+import { Prisma } from '../generated/prisma/client.ts';
 import { ApiError } from '../utils/api-error.js';
 
-// PostgreSQL error codes: https://www.postgresql.org/docs/current/errcodes-appendix.html
-const PG_UNIQUE_VIOLATION = '23505';
-const PG_FOREIGN_KEY_VIOLATION = '23503';
-const PG_INVALID_TEXT = '22P02';
+// Prisma error codes: https://www.prisma.io/docs/orm/reference/error-reference
+const PRISMA_ERRORS = {
+  P2002: () => ApiError.conflict('A record with the same unique value already exists'),
+  P2003: () => ApiError.badRequest('Related resource not found'),
+  P2025: () => ApiError.notFound(), // record to update/delete does not exist
+};
 
 /** Translate known (non ApiError) errors into ApiError instances. */
 function normalizeError(err) {
@@ -17,10 +20,9 @@ function normalizeError(err) {
   }
   if (err.type === 'entity.parse.failed') return ApiError.badRequest('Malformed JSON body');
   if (err.type === 'entity.too.large') return new ApiError(413, 'Request body is too large');
-  if (err.code === PG_UNIQUE_VIOLATION) return ApiError.conflict(err.detail ?? 'Duplicate value');
-  if (err.code === PG_FOREIGN_KEY_VIOLATION)
-    return ApiError.badRequest('Related resource not found');
-  if (err.code === PG_INVALID_TEXT) return ApiError.badRequest('Invalid input syntax');
+  if (err instanceof Prisma.PrismaClientKnownRequestError && PRISMA_ERRORS[err.code]) {
+    return PRISMA_ERRORS[err.code]();
+  }
 
   return null;
 }

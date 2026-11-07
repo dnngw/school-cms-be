@@ -1,34 +1,21 @@
-import { db } from '../../db/knex.js';
-import { ApiError } from '../../utils/api-error.js';
-import { reorderRows } from '../../utils/reorder.js';
+import { prisma } from '../../db/prisma.js';
+import { nextSortOrder, reorderRows } from '../../utils/reorder.js';
 
-const ordered = () => db('staff').orderBy([{ column: 'sortOrder' }, { column: 'id' }]);
+const orderBy = [{ sortOrder: 'asc' }, { id: 'asc' }];
 
-export function listVisible({ limit } = {}) {
-  const query = ordered().where({ isVisible: true });
-  if (limit) query.limit(limit);
-  return query;
-}
+export const listVisible = ({ limit } = {}) =>
+  prisma.staff.findMany({ where: { isVisible: true }, orderBy, take: limit });
 
-export const list = () => ordered();
+export const list = () => prisma.staff.findMany({ orderBy });
 
 export async function create(data) {
-  const { max } = await db('staff').max({ max: 'sortOrder' }).first();
-  const [row] = await db('staff')
-    .insert({ ...data, sortOrder: (max ?? -1) + 1 })
-    .returning('*');
-  return row;
+  return prisma.staff.create({ data: { ...data, sortOrder: await nextSortOrder(prisma.staff) } });
 }
 
-export async function update(id, data) {
-  const [row] = await db('staff').where({ id }).update(data).returning('*');
-  if (!row) throw ApiError.notFound('Staff not found');
-  return row;
-}
+export const update = (id, data) => prisma.staff.update({ where: { id }, data });
 
 export async function remove(id) {
-  const deleted = await db('staff').where({ id }).delete();
-  if (!deleted) throw ApiError.notFound('Staff not found');
+  await prisma.staff.delete({ where: { id } });
 }
 
-export const reorder = (ids) => reorderRows(db, 'staff', ids);
+export const reorder = (ids) => reorderRows(prisma.staff, ids);

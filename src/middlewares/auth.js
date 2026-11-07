@@ -1,4 +1,4 @@
-import { db } from '../db/knex.js';
+import { prisma } from '../db/prisma.js';
 import { ApiError } from '../utils/api-error.js';
 import { verifyToken } from '../modules/auth/token.js';
 
@@ -19,9 +19,10 @@ export async function authenticate(req, _res, next) {
   }
 
   // Re-check the database so deleted/deactivated users lose access immediately.
-  const user = await db('users')
-    .where({ id: payload.sub, isActive: true })
-    .first('id', 'name', 'email', 'role');
+  const user = await prisma.user.findFirst({
+    where: { id: Number(payload.sub), isActive: true },
+    select: { id: true, name: true, email: true, role: true },
+  });
 
   if (!user) return next(ApiError.unauthorized('User no longer exists'));
 

@@ -8,26 +8,26 @@ export const paginationQuery = z.object({
 });
 
 /**
- * Run a Knex query with pagination and return `{ data, meta }`.
+ * Run `findMany` + `count` for a Prisma model and return `{ data, meta }`.
  *
- * @param {import('knex').Knex.QueryBuilder} query base query (filters already applied)
+ * @example
+ * paginate(prisma.post, { where, orderBy: { createdAt: 'desc' } }, { page: 1, limit: 10 })
+ *
+ * @param {{ findMany: Function, count: Function }} model e.g. `prisma.post`
+ * @param {object} args findMany arguments (where, orderBy, select, include, ...)
  * @param {{ page: number, limit: number }} options
  */
-export async function paginate(query, { page, limit }) {
-  const countQuery = query.clone().clearSelect().clearOrder().count({ total: '*' }).first();
-  const [rows, { total }] = await Promise.all([
-    query.limit(limit).offset((page - 1) * limit),
-    countQuery,
+export async function paginate(model, args, { page, limit }) {
+  const [data, total] = await Promise.all([
+    model.findMany({ ...args, skip: (page - 1) * limit, take: limit }),
+    model.count({ where: args.where }),
   ]);
 
-  const totalItems = Number(total);
   return {
-    data: rows,
-    meta: {
-      page,
-      limit,
-      total: totalItems,
-      totalPages: Math.max(1, Math.ceil(totalItems / limit)),
-    },
+    data,
+    meta: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) },
   };
 }
+
+/** Case-insensitive "contains" filter (PostgreSQL ILIKE). */
+export const contains = (value) => ({ contains: value, mode: 'insensitive' });

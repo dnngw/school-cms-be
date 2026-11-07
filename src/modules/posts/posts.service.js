@@ -1,26 +1,28 @@
-import { db } from '../../db/knex.js';
+import { prisma } from '../../db/prisma.js';
 import { ApiError } from '../../utils/api-error.js';
-import { paginate } from '../../utils/pagination.js';
+import { contains, paginate } from '../../utils/pagination.js';
 import { sanitizeRichText } from '../../utils/sanitize.js';
 import { uniqueSlug } from '../../utils/slug.js';
 
-/** Base query joining category & author so the client gets everything in one request. */
-function baseQuery() {
-  return db('posts as p')
-    .leftJoin('categories as c', 'c.id', 'p.categoryId')
-    .leftJoin('users as u', 'u.id', 'p.authorId')
-    .select('p.*', 'c.name as categoryName', 'c.slug as categorySlug', 'u.name as authorName');
-}
+/** Load the category and author together with the post (SQL JOIN). */
+const include = {
+  category: { select: { name: true, slug: true } },
+  author: { select: { name: true } },
+};
 
-function applySearch(query, search) {
-  if (search)
-    query.where((q) =>
-      q.whereILike('p.title', `%${search}%`).orWhereILike('p.excerpt', `%${search}%`),
-    );
-}
+/** Flatten relations so the API keeps a simple shape: { categoryName, categorySlug, authorName }. */
+const toDto = ({ category, author, ...post }) => ({
+  ...post,
+  categoryName: category?.name ?? null,
+  categorySlug: category?.slug ?? null,
+  authorName: author?.name ?? null,
+});
 
-const isPublished = (query) =>
-  query.where('p.status', 'published').where('p.publishedAt', '<=', db.fn.now());
+const searchFilter = (search) =>
+  search ? { OR: [{ title: contains(search) }, { excerpt: contains(search) }] } : {};
+
+/** Published = status "published" and publish date already passed (supports scheduling). */
+const publishedFilter = () => ({ status: 'published', publishedAt: { lte: new Date() } });
 
 /** Create a plain text excerpt from HTML when the author didn't write one. */
 const makeExcerpt = (html) =>
@@ -30,89 +32,88 @@ const makeExcerpt = (html) =>
     .trim()
     .slice(0, 200);
 
-async function toRow(data, id) {
-  const content = sanitizeRichText(data.content);
+async function toData(input, id) {
+  const content = sanitizeRichText(input.content);
   return {
-    title: data.title,
-    slug: await uniqueSlug(db, 'posts', data.slug || data.title, id),
-    excerpt: data.excerpt || makeExcerpt(content),
+    title: input.title,
+    slug: await uniqueSlug(prisma.post, input.slug || input.title, id),
+    excerpt: input.excerpt || makeExcerpt(content),
     content,
-    coverImage: data.coverImage,
-    categoryId: data.categoryId ?? null,
-    status: data.status,
-    isFeatured: data.isFeatured,
+    coverImage: input.coverImage,
+    categoryId: input.categoryId ?? null,
+    status: input.status,
+    isFeatured: input.isFeatured,
     // Publishing without a date means "publish now".
     publishedAt:
-      data.status === 'published' ? (data.publishedAt ?? new Date()) : (data.publishedAt ?? null),
+      input.status === 'published'
+        ? (input.publishedAt ?? new Date())
+        : (input.publishedAt ?? null),
   };
 }
 
 // --- Public ---------------------------------------------------------------
 
-export function listPublished({ page, limit, search, category, featured }) {
-  const query = isPublished(baseQuery()).orderBy('p.publishedAt', 'desc');
-  applySearch(query, search);
-  if (category) query.where('c.slug', category);
-  if (featured !== undefined) query.where('p.isFeatured', featured);
-  // Lists don't need the full article body.
-  query
-    .clearSelect()
-    .select(
-      'p.id',
-      'p.title',
-      'p.slug',
-      'p.excerpt',
-      'p.coverImage',
-      'p.publishedAt',
-      'p.views',
-      'p.isFeatured',
-      'c.name as categoryName',
-      'c.slug as categorySlug',
-      'u.name as authorName',
-    );
-  return paginate(query, { page, limit });
+export async function listPublished({ page, limit, search, category, featured }) {
+  const where = {
+    ...publishedFilter(),
+    ...searchFilter(search),
+    ...(category ? { category: { slug: category } } : {}),
+    ...(featured !== undefined ? { isFeatured: featured } : {}),
+  };
+  const result = await paginate(
+    prisma.post,
+    // Lists don't need the full article body -> omit it.
+    { where, include, omit: { content: true }, orderBy: { publishedAt: 'desc' } },
+    { page, limit },
+  );
+  return { ...result, data: result.data.map(toDto) };
 }
 
 export async function findPublishedBySlug(slug) {
-  const post = await isPublished(baseQuery()).where('p.slug', slug).first();
+  const post = await prisma.post.findFirst({ where: { slug, ...publishedFilter() }, include });
   if (!post) throw ApiError.notFound('Post not found');
 
-  await db('posts').where({ id: post.id }).increment('views', 1);
-  return { ...post, views: post.views + 1 };
+  // Atomic increment (no race condition between concurrent visitors).
+  const { views } = await prisma.post.update({
+    where: { id: post.id },
+    data: { views: { increment: 1 } },
+    select: { views: true },
+  });
+  return toDto({ ...post, views });
 }
 
 // --- Admin ----------------------------------------------------------------
 
-export function list({ page, limit, search, status, categoryId }) {
-  const query = baseQuery().orderBy('p.createdAt', 'desc');
-  applySearch(query, search);
-  if (status) query.where('p.status', status);
-  if (categoryId) query.where('p.categoryId', categoryId);
-  return paginate(query, { page, limit });
+export async function list({ page, limit, search, status, categoryId }) {
+  const where = {
+    ...searchFilter(search),
+    ...(status ? { status } : {}),
+    ...(categoryId ? { categoryId } : {}),
+  };
+  const result = await paginate(
+    prisma.post,
+    { where, include, omit: { content: true }, orderBy: { createdAt: 'desc' } },
+    { page, limit },
+  );
+  return { ...result, data: result.data.map(toDto) };
 }
 
 export async function findById(id) {
-  const post = await baseQuery().where('p.id', id).first();
+  const post = await prisma.post.findUnique({ where: { id }, include });
   if (!post) throw ApiError.notFound('Post not found');
-  return post;
+  return toDto(post);
 }
 
-export async function create(data, authorId) {
-  const [{ id }] = await db('posts')
-    .insert({ ...(await toRow(data)), authorId })
-    .returning('id');
-  return findById(id);
+export async function create(input, authorId) {
+  const post = await prisma.post.create({ data: { ...(await toData(input)), authorId }, include });
+  return toDto(post);
 }
 
-export async function update(id, data) {
-  const updated = await db('posts')
-    .where({ id })
-    .update(await toRow(data, id));
-  if (!updated) throw ApiError.notFound('Post not found');
-  return findById(id);
+export async function update(id, input) {
+  const post = await prisma.post.update({ where: { id }, data: await toData(input, id), include });
+  return toDto(post);
 }
 
 export async function remove(id) {
-  const deleted = await db('posts').where({ id }).delete();
-  if (!deleted) throw ApiError.notFound('Post not found');
+  await prisma.post.delete({ where: { id } });
 }

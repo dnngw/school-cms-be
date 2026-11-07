@@ -6,23 +6,24 @@ export function slugify(text) {
 }
 
 /**
- * Generate a slug that is unique inside `table.column`.
+ * Generate a slug that is unique for a Prisma model with a `slug` column.
  * Appends -2, -3, ... when the slug is already taken.
  *
- * @param {import('knex').Knex} db
- * @param {string} table
+ * @param {{ findFirst: Function }} model e.g. `prisma.post`
  * @param {string} text
  * @param {number} [ignoreId] Row id to ignore (useful on update)
  */
-export async function uniqueSlug(db, table, text, ignoreId) {
+export async function uniqueSlug(model, text, ignoreId) {
   const base = slugify(text) || 'item';
   let candidate = base;
   let counter = 2;
 
   for (;;) {
-    const query = db(table).where({ slug: candidate }).first('id');
-    if (ignoreId) query.whereNot({ id: ignoreId });
-    if (!(await query)) return candidate;
+    const taken = await model.findFirst({
+      where: { slug: candidate, ...(ignoreId ? { NOT: { id: ignoreId } } : {}) },
+      select: { id: true },
+    });
+    if (!taken) return candidate;
     candidate = `${base}-${counter++}`;
   }
 }

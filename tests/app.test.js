@@ -2,13 +2,13 @@ import assert from 'node:assert/strict';
 import { after, describe, it } from 'node:test';
 import request from 'supertest';
 import { createApp } from '../src/app.js';
-import { db } from '../src/db/knex.js';
+import { prisma } from '../src/db/prisma.js';
 
 // These tests don't need a database: they cover the HTTP layer
 // (routing, validation, auth guard and error formatting).
 const app = createApp();
 
-after(() => db.destroy());
+after(() => prisma.$disconnect());
 
 describe('HTTP layer', () => {
   it('GET /health returns ok', async () => {
