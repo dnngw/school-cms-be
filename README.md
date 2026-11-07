@@ -1,7 +1,7 @@
 # School CMS — Backend API
 
 REST API untuk **School CMS**, sistem manajemen konten (CMS) open-source untuk website sekolah.
-Dibangun dengan **Express 5**, **PostgreSQL**, dan **Knex**.
+Dibangun dengan **Express 5**, **PostgreSQL**, dan **Prisma ORM**.
 
 > Frontend (website publik + panel admin): [`school-cms-fe`](../school-cms-fe)
 
@@ -17,20 +17,20 @@ Dibangun dengan **Express 5**, **PostgreSQL**, dan **Knex**.
 
 ## 🧱 Tech stack
 
-| Kebutuhan   | Library                                            |
-| ----------- | -------------------------------------------------- |
-| HTTP server | Express 5 (async error handling bawaan)            |
-| Database    | PostgreSQL + Knex (query builder, migration, seed) |
-| Validasi    | Zod                                                |
-| Auth        | jsonwebtoken + bcryptjs                            |
-| Keamanan    | helmet, cors, express-rate-limit, sanitize-html    |
-| Upload      | multer                                             |
-| Logging     | pino                                               |
-| Test        | node:test + supertest                              |
+| Kebutuhan   | Library                                                           |
+| ----------- | ----------------------------------------------------------------- |
+| HTTP server | Express 5 (async error handling bawaan)                           |
+| Database    | PostgreSQL + Prisma 7 (schema, migration, seed, type-safe client) |
+| Validasi    | Zod                                                               |
+| Auth        | jsonwebtoken + bcryptjs                                           |
+| Keamanan    | helmet, cors, express-rate-limit, sanitize-html                   |
+| Upload      | multer                                                            |
+| Logging     | pino                                                              |
+| Test        | node:test + supertest                                             |
 
 ## 🚀 Menjalankan secara lokal
 
-Prasyarat: **Node.js ≥ 22** dan **PostgreSQL** (atau Docker).
+Prasyarat: **Node.js ≥ 22.18** dan **PostgreSQL** (atau Docker).
 
 ```bash
 # 1. Install dependency
@@ -43,7 +43,7 @@ cp .env.example .env          # lalu sesuaikan DATABASE_URL & JWT_SECRET
 createdb school_cms
 
 # 4. Migrasi + data contoh
-npm run db:migrate
+npm run db:migrate            # terapkan semua migrasi (prisma migrate deploy)
 npm run db:seed               # ⚠️ menghapus semua data lama
 
 # 5. Jalankan
@@ -61,28 +61,53 @@ Akun demo hasil seed:
 
 ## 📜 Scripts
 
-| Script                               | Keterangan                                          |
-| ------------------------------------ | --------------------------------------------------- |
-| `npm run dev`                        | Jalankan server dengan auto-reload (`node --watch`) |
-| `npm start`                          | Jalankan mode production                            |
-| `npm run db:migrate` / `db:rollback` | Jalankan / batalkan migrasi                         |
-| `npm run db:make <nama>`             | Buat file migrasi baru                              |
-| `npm run db:seed`                    | Isi data contoh                                     |
-| `npm run db:reset`                   | Rollback semua, migrasi ulang, lalu seed            |
-| `npm test`                           | Jalankan test                                       |
-| `npm run lint` / `format`            | ESLint / Prettier                                   |
+| Script                                    | Keterangan                                                                          |
+| ----------------------------------------- | ----------------------------------------------------------------------------------- |
+| `npm run dev`                             | Jalankan server dengan auto-reload (`node --watch`)                                 |
+| `npm start`                               | Jalankan mode production                                                            |
+| `npm run db:migrate`                      | Terapkan migrasi yang belum jalan (`prisma migrate deploy`) — aman untuk production |
+| `npm run db:migrate:dev -- --name <nama>` | Buat migrasi baru dari perubahan `schema.prisma` lalu terapkan (development)        |
+| `npm run db:status`                       | Lihat status migrasi                                                                |
+| `npm run db:seed`                         | Isi data contoh (⚠️ menghapus semua data)                                           |
+| `npm run db:reset`                        | Hapus database, migrasi ulang, lalu seed                                            |
+| `npm run db:studio`                       | Buka Prisma Studio (GUI untuk melihat/mengubah data)                                |
+| `npm run db:generate`                     | Generate ulang Prisma Client (otomatis saat `npm install`)                          |
+| `npm test`                                | Jalankan test                                                                       |
+| `npm run lint` / `format`                 | ESLint / Prettier                                                                   |
+
+## 🗄️ Database & migrasi (Prisma)
+
+Struktur database didefinisikan di **`prisma/schema.prisma`**. Model memakai camelCase di JavaScript
+dan dipetakan ke tabel/kolom snake_case di PostgreSQL dengan `@map` / `@@map`.
+
+Alur mengubah struktur database:
+
+```bash
+# 1. Edit prisma/schema.prisma, misalnya tambah kolom:  nip String? @db.VarChar(30)
+# 2. Buat + jalankan migrasi (file SQL baru muncul di prisma/migrations/)
+npm run db:migrate:dev -- --name add_nip_to_staff
+# 3. Commit schema.prisma DAN folder migrasi baru
+```
+
+- Jangan mengedit file migrasi yang sudah di-commit — selalu buat migrasi baru.
+- Di server production cukup jalankan `npm run db:migrate`.
+- Prisma Client di-generate ke `src/generated/prisma` (tidak di-commit). Node ≥ 22.18 menjalankan file
+  TypeScript hasil generate secara langsung, jadi kode aplikasi tetap JavaScript biasa.
 
 ## 🗂️ Struktur folder
 
 ```
+prisma/
+├── schema.prisma          # ⭐ Definisi semua tabel, relasi, enum
+├── migrations/            # File SQL migrasi (dibuat oleh Prisma)
+└── seed.js                # Data contoh
+prisma.config.js           # Konfigurasi Prisma CLI
 src/
 ├── app.js                 # Membuat Express app (dipisah dari server agar mudah dites)
 ├── server.js              # Entry point: listen port + graceful shutdown
 ├── config/                # env (divalidasi Zod) & logger
-├── db/
-│   ├── knex.js            # Koneksi + konversi otomatis camelCase <-> snake_case
-│   ├── migrations/        # Skema database
-│   └── seeds/             # Data contoh
+├── db/prisma.js           # Prisma Client (satu instance untuk seluruh app)
+├── generated/prisma/      # Hasil `prisma generate` (diabaikan git)
 ├── middlewares/           # auth, validate, upload, rate-limit, error-handler
 ├── modules/               # Satu folder per fitur
 │   └── posts/
@@ -126,7 +151,7 @@ curl localhost:4000/api/v1/admin/dashboard -H "Authorization: Bearer <token>"
 
 ```bash
 docker compose up -d   # PostgreSQL + API di http://localhost:4000
-docker compose exec api npx knex seed:run   # opsional: data contoh
+docker compose exec api npx prisma db seed   # opsional: data contoh
 ```
 
 ## 🤝 Kontribusi
