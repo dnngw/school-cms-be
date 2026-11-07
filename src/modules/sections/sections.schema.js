@@ -15,6 +15,8 @@ export const sectionStyleSchema = z.object({
   width: z.enum(['narrow', 'normal', 'wide', 'full']).optional(),
   align: z.enum(['left', 'center']).optional(),
   variant: z.string().max(40).optional(),
+  // How the section appears when scrolled into view.
+  animation: z.enum(['none', 'fade-up', 'fade', 'zoom', 'slide-left', 'slide-right']).optional(),
   anchorId: z
     .string()
     .regex(/^[a-z0-9-]*$/, 'Only lowercase letters, numbers and dashes')

@@ -28,3 +28,19 @@ describe('partial update schemas', () => {
     assert.equal(user.isActive, true);
   });
 });
+
+describe('animation options', async () => {
+  const { sectionStyleSchema } = await import('../src/modules/sections/sections.schema.js');
+  const { getSettingsSchema } = await import('../src/modules/settings/settings.schema.js');
+  const { SETTINGS_DEFAULTS } = await import('../src/modules/settings/settings.defaults.js');
+
+  it('accepts known section animations only', () => {
+    assert.equal(sectionStyleSchema.parse({ animation: 'zoom' }).animation, 'zoom');
+    assert.throws(() => sectionStyleSchema.parse({ animation: 'spin' }));
+  });
+
+  it('theme defaults are valid and include the animation level', () => {
+    const theme = getSettingsSchema('theme').parse(SETTINGS_DEFAULTS.theme);
+    assert.equal(theme.animation, 'subtle');
+  });
+});

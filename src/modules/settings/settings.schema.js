@@ -75,6 +75,7 @@ const schemas = {
     buttonStyle: z.enum(['square', 'rounded', 'pill']),
     headerStyle: z.enum(['static', 'sticky']),
     containerWidth: z.number().int().min(960).max(1600),
+    animation: z.enum(['none', 'subtle', 'lively']),
   }),
 };
 

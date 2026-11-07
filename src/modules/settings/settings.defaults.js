@@ -70,6 +70,8 @@ export const SETTINGS_DEFAULTS = {
     buttonStyle: 'rounded',
     headerStyle: 'sticky',
     containerWidth: 1200,
+    // Scroll / entrance animations on the website: none | subtle | lively
+    animation: 'subtle',
   },
 };
 
