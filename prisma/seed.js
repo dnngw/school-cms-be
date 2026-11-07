@@ -50,7 +50,7 @@ async function seedSettings() {
       {
         key: 'general',
         value: {
-          siteName: 'SMA Nusantara',
+          siteName: 'Greenwood High School',
           tagline: 'Cerdas, Berkarakter, dan Berprestasi',
           npsn: '20100000',
           accreditation: 'A',
@@ -70,7 +70,7 @@ async function seedSettings() {
         key: 'footer',
         value: {
           about:
-            'SMA Nusantara berkomitmen mencetak generasi yang unggul dalam ilmu pengetahuan, teknologi, dan berakhlak mulia.',
+            'Greenwood High School berkomitmen mencetak generasi yang unggul dalam ilmu pengetahuan, teknologi, dan berakhlak mulia.',
           copyright: '',
         },
       },
@@ -91,7 +91,7 @@ async function seedPosts(authorId) {
     '<p>Kegiatan ini diikuti dengan antusias oleh seluruh warga sekolah. Kepala sekolah menyampaikan bahwa kegiatan seperti ini penting untuk membangun karakter dan kreativitas siswa.</p><p>Ke depan, sekolah akan terus mengadakan program-program positif yang mendukung pengembangan potensi peserta didik secara menyeluruh.</p>';
 
   const posts = [
-    ['Siswa SMA Nusantara Raih Medali Emas Olimpiade Sains Nasional', prestasi.id, true],
+    ['Siswa Greenwood High School Raih Medali Emas Olimpiade Sains Nasional', prestasi.id, true],
     ['Penerimaan Peserta Didik Baru Tahun Ajaran Baru Telah Dibuka', pengumuman.id, true],
     ['Peringatan Hari Guru Nasional Berlangsung Meriah', berita.id, false],
     ['Kunjungan Industri Kelas XI ke Kawasan Teknologi', berita.id, false],
@@ -103,7 +103,7 @@ async function seedPosts(authorId) {
     data: posts.map(([title, categoryId, featured], i) => ({
       title,
       slug: slugify(title),
-      excerpt: `${title}. Simak informasi selengkapnya di website resmi SMA Nusantara.`,
+      excerpt: `${title}. Simak informasi selengkapnya di website resmi Greenwood High School.`,
       content: `<p><strong>${title}.</strong></p>${paragraph}`,
       coverImage: img(`post-${i}`),
       categoryId,
@@ -131,7 +131,7 @@ async function seedPages() {
         slug: 'sejarah',
         status: 'published',
         content:
-          '<p>SMA Nusantara didirikan pada tahun 1985 dengan semangat memajukan pendidikan di daerah. Berawal dari 3 ruang kelas, kini sekolah telah berkembang dengan fasilitas modern dan ribuan alumni yang tersebar di berbagai bidang.</p>',
+          '<p>Greenwood High School didirikan pada tahun 1985 dengan semangat memajukan pendidikan di daerah. Berawal dari 3 ruang kelas, kini sekolah telah berkembang dengan fasilitas modern dan ribuan alumni yang tersebar di berbagai bidang.</p>',
       },
       {
         title: 'PPDB',
@@ -297,7 +297,7 @@ async function seedSections() {
       'Sambutan Kepala Sekolah',
       {
         eyebrow: 'Sambutan',
-        title: 'Selamat Datang di SMA Nusantara',
+        title: 'Selamat Datang di Greenwood High School',
         name: 'Emily Johnson',
         role: 'Kepala Sekolah',
         photo: img('principal', 600, 700),

@@ -5,7 +5,7 @@
  */
 export const SETTINGS_DEFAULTS = {
   general: {
-    siteName: 'Sekolah Nusantara',
+    siteName: 'Greenwood High School',
     tagline: 'Cerdas, Berkarakter, dan Berprestasi',
     logo: '',
     favicon: '',
